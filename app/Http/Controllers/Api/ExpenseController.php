@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Expense;
+use App\Models\Wallet;
 
 class ExpenseController extends Controller
 {
     private function userId()
     {
-        return 1;
+        return auth()->id();
     }
 
     public function index(Request $request)
@@ -26,21 +27,31 @@ class ExpenseController extends Controller
 
     public function store(Request $request)
     {
-    $request->validate([
-        'wallet_id' => 'required|exists:wallets,id',
-        'amount' => 'required|integer',
-        'note' => 'nullable|string|max:255',
-        'date' => 'required|date',
-    ]);
+        $request->validate([
+            'wallet_id' => 'required|exists:wallets,id',
+            'amount' => 'required|integer',
+            'date' => 'required|date',
+        ]);
 
-    return Expense::create([
-        'user_id' => $this->userId(),
-        'wallet_id' => $request->wallet_id,
-        'amount' => $request->amount,
-        'note' => $request->note,
-        'date' => $request->date,
-    ]);
-    }   
+        $wallet = Wallet::findOrFail($request->wallet_id);
+
+        // check if wallet belongs to user
+        $wallet = Wallet::where('id', $request->wallet_id)
+        ->where('user_id', $this->userId())
+        ->firstOrFail();
+
+        // reduce balance
+        $wallet->balance -= $request->amount;
+        $wallet->save();
+
+        return Expense::create([
+            'user_id' => $this->userId(),
+            'wallet_id' => $wallet->id,
+            'amount' => $request->amount,
+            'note' => $request->note,
+            'date' => $request->date,
+        ]);
+    }
 
     public function total(Request $request)
     {
