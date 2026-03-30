@@ -11,7 +11,7 @@ class WalletController extends Controller
 
     private function userId()
     {
-        return 1;
+        return auth()->id();
     }
 
     public function index()
@@ -28,6 +28,7 @@ class WalletController extends Controller
     return Wallet::create([
         'user_id' => $this->userId(),
         'name' => $request->name,
+        'balance' => $request->balance ?? 0,
     ]);
 }
 }
