@@ -40,6 +40,11 @@ class ExpenseController extends Controller
         ->where('user_id', $this->userId())
         ->firstOrFail();
 
+        // check if wallet has sufficient balance
+        if ($wallet->balance < $request->amount) {
+            return response()->json(['message' => 'Insufficient wallet balance'], 400);
+        }
+
         // reduce balance
         $wallet->balance -= $request->amount;
         $wallet->save();
@@ -61,6 +66,6 @@ class ExpenseController extends Controller
             $query->whereBetween('date', [$request->start_date, $request->end_date]);
         }
 
-        return ['total' => $query->sum('amount')];
+        return response()->json(['total' => $query->sum('amount')]);
     }
 }

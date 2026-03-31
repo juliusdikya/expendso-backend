@@ -18,4 +18,6 @@ Route::middleware('auth:sanctum')->group(function () {
     //wallets
     Route::get('/wallets', [WalletController::class, 'index']);
     Route::post('/wallets', [WalletController::class, 'store']);
+    Route::post('/wallets/{id}/top-up', [WalletController::class, 'topUp']);
+    
 });
