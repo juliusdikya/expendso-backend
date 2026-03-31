@@ -20,16 +20,39 @@ class WalletController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'name' => 'required|string|max:255',
-    ]);
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
 
-    return Wallet::create([
-        'user_id' => $this->userId(),
-        'name' => $request->name,
-        'balance' => $request->balance ?? 0,
-    ]);
-}
+        return Wallet::create([
+            'user_id' => $this->userId(),
+            'name' => $request->name,
+            'balance' => $request->balance ?? 0,
+        ]);
+    }
+
+    public function topUp(Request $request, $id)
+    {
+        $request->validate([
+            'amount' => 'required|integer|min:1',
+        ]);
+
+        $wallet = Wallet::where('id', $id)
+            ->where('user_id', $this->userId())
+            ->first();
+
+        if (!$wallet) {
+            return response()->json(['message' => 'Wallet not found or unauthorized'], 403);
+        }
+
+        $wallet->balance += $request->amount;
+        $wallet->save();
+
+        return response()->json ([
+            'message' => 'Wallet topped up successfully',
+            'wallet' => $wallet,
+        ]);
+    }
 }
 
