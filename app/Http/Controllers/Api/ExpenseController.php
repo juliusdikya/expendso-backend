@@ -18,7 +18,7 @@ class ExpenseController extends Controller
     {
         $query = Expense::with('wallet')->where('user_id', $this->userId());
 
-        if ($request->start_date && $request->end_date){
+        if ($request->start_date && $request->end_date) {
             $query->whereBetween('date', [$request->start_date, $request->end_date]);
         }
 
@@ -30,6 +30,7 @@ class ExpenseController extends Controller
         $request->validate([
             'wallet_id' => 'required|exists:wallets,id',
             'amount' => 'required|integer',
+            'category' => 'required|in:food,transport,shopping,bills,entertainment,health,education,salary,investment,other',
             'date' => 'required|date',
         ]);
 
@@ -37,8 +38,8 @@ class ExpenseController extends Controller
 
         // check if wallet belongs to user
         $wallet = Wallet::where('id', $request->wallet_id)
-        ->where('user_id', $this->userId())
-        ->firstOrFail();
+            ->where('user_id', $this->userId())
+            ->firstOrFail();
 
         // check if wallet has sufficient balance
         if ($wallet->balance < $request->amount) {
@@ -53,6 +54,7 @@ class ExpenseController extends Controller
             'user_id' => $this->userId(),
             'wallet_id' => $wallet->id,
             'amount' => $request->amount,
+            'category' => $request->category,
             'note' => $request->note,
             'date' => $request->date,
         ]);
@@ -62,7 +64,7 @@ class ExpenseController extends Controller
     {
         $query = Expense::where('user_id', $this->userId());
 
-        if ($request->start_date && $request->end_date){
+        if ($request->start_date && $request->end_date) {
             $query->whereBetween('date', [$request->start_date, $request->end_date]);
         }
 
