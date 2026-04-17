@@ -12,6 +12,7 @@ class Expense extends Model
         'wallet_id',
         'amount',
         'category',
+        'type',
         'note',
         'date'
     ];

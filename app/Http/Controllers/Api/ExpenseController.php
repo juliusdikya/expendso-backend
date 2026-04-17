@@ -30,24 +30,58 @@ class ExpenseController extends Controller
         $request->validate([
             'wallet_id' => 'required|exists:wallets,id',
             'amount' => 'required|integer',
-            'category' => 'required|in:food,transport,shopping,bills,entertainment,health,education,salary,investment,other',
+            'type' => 'required|in:expense,income',
             'date' => 'required|date',
         ]);
 
-        $wallet = Wallet::findOrFail($request->wallet_id);
+        $expenseCategories = [
+            'food',
+            'transport',
+            'shopping',
+            'bills',
+            'entertainment',
+            'health',
+            'education',
+            'other'
+        ];
+
+        $incomeCategories = [
+            'salary',
+            'freelance',
+            'bonus',
+            'investment',
+            'gift',
+            'other'
+        ];
+
+        if ($request->type === 'expense') {
+            $request->validate([
+                'category' => 'required|in:' . implode(',', $expenseCategories),
+            ]);
+        } else {
+            $request->validate([
+                'category' => 'required|in:' . implode(',', $incomeCategories),
+            ]);
+        }
 
         // check if wallet belongs to user
         $wallet = Wallet::where('id', $request->wallet_id)
             ->where('user_id', $this->userId())
             ->firstOrFail();
 
-        // check if wallet has sufficient balance
-        if ($wallet->balance < $request->amount) {
-            return response()->json(['message' => 'Insufficient wallet balance'], 400);
+        // reduce / increase balance
+        if ($request->type === 'expense') {
+            if ($wallet->balance < $request->amount) {
+                return response()->json([
+                    'message' => 'Insufficient balance'
+                ], 400);
+            }
+
+            $wallet->balance -= $request->amount;
+        } else {
+            $wallet->balance += $request->amount;
         }
 
-        // reduce balance
-        $wallet->balance -= $request->amount;
         $wallet->save();
 
         return Expense::create([
@@ -55,6 +89,7 @@ class ExpenseController extends Controller
             'wallet_id' => $wallet->id,
             'amount' => $request->amount,
             'category' => $request->category,
+            'type' => $request->type,
             'note' => $request->note,
             'date' => $request->date,
         ]);
@@ -68,6 +103,13 @@ class ExpenseController extends Controller
             $query->whereBetween('date', [$request->start_date, $request->end_date]);
         }
 
-        return response()->json(['total' => $query->sum('amount')]);
+        $totalExpense = (clone $query)->where('type', 'expense')->sum('amount');
+        $totalIncome  = (clone $query)->where('type', 'income')->sum('amount');
+
+        return response()->json([
+            'total_expense' => $totalExpense,
+            'total_income'  => $totalIncome,
+            'total'         => $totalExpense, // Preserved 'total' returning total expenses for backward compatibility
+        ]);
     }
 }
